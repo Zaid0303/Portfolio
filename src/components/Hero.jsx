@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import ReactTyped from 'react-typed';
+import { Typewriter } from 'react-simple-typewriter';
 import { Download, Eye, Mail } from 'lucide-react';
+
 
 const Hero = () => {
   const typedRef = useRef(null);
@@ -39,13 +40,22 @@ const Hero = () => {
             >
               I am a Professional{' '}
               <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-primary-300 via-purple-300 to-pink-300 dark:from-primary-400 dark:via-purple-400 dark:to-pink-400">
-                <ReactTyped
+                <Typewriter
+                  words={['Graphic Designer', 'Full Stack Developer', 'Video Editor']}
+                  loop={true}
+                  cursor
+                  cursorStyle="|"
+                  typeSpeed={70}
+                  deleteSpeed={50}
+                  delaySpeed={1000}
+                />
+                {/* <ReactTyped
                   strings={['Graphic Designer', 'Full Stack Developer', 'Video Editor']}
                   typeSpeed={50}
                   backSpeed={30}
                   loop
                   style={{ display: 'inline-block', minHeight: '1.2em' }}
-                />
+                /> */}
               </span>
             </motion.h1>
 
