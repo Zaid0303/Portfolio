@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // ✅ Secret Tap Logic (Admin Only)
+  const [tapCount, setTapCount] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,6 +19,22 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // ✅ Reset taps after 1.5s
+  useEffect(() => {
+    if (tapCount === 0) return;
+    const timer = setTimeout(() => setTapCount(0), 1500);
+    return () => clearTimeout(timer);
+  }, [tapCount]);
+
+  const handleSecretTap = () => {
+    setTapCount((prev) => prev + 1);
+    if (tapCount + 1 === 3) {
+      setTapCount(0);
+      // 🔐 Navigate to login only for admin
+      navigate('/login?admin=true'); 
+    }
+  };
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -35,9 +54,7 @@ const Navbar = () => {
     setIsOpen(false);
     if (path.startsWith('#')) {
       const element = document.querySelector(path);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
+      if (element) element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -53,12 +70,16 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          
+          {/* Logo (Secret Tap Area for Admin Login) */}
+          <div
+            onClick={handleSecretTap}
+            className="flex items-center space-x-2 cursor-pointer"
+          >
             <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">
               Portfolio
             </span>
-          </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1 lg:space-x-4">
@@ -83,22 +104,16 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <ThemeToggle />
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300"
               aria-label="Toggle menu"
             >
-              {isOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -144,4 +159,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

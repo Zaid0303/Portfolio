@@ -1,30 +1,28 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { getMessages, subscribeToMessages } from '../firebase/firestoreServices';
-import { Mail, User, Calendar, MessageSquare, RefreshCw, Bell } from 'lucide-react';
+import { Mail, User, Calendar, MessageSquare, RefreshCw, Bell, Search } from 'lucide-react';
 
 const MessagesList = () => {
   const [messages, setMessages] = useState([]);
+  const [filteredMessages, setFilteredMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [newMessageCount, setNewMessageCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     let previousCount = 0;
-    
-    // Load initial messages
     loadMessages();
-    
-    // Subscribe to realtime updates
+
     const unsubscribe = subscribeToMessages((result) => {
       if (result.success && result.data) {
         const currentCount = result.data.length;
         setMessages(result.data);
-        
-        // Show notification for new messages
+        setFilteredMessages(result.data);
+
         if (currentCount > previousCount && previousCount > 0) {
           setNewMessageCount(currentCount - previousCount);
-          // Show browser notification if permission granted
           if (Notification.permission === 'granted') {
             new Notification('New Contact Message', {
               body: `You have ${currentCount - previousCount} new message(s)`,
@@ -40,7 +38,6 @@ const MessagesList = () => {
       setLoading(false);
     });
 
-    // Request notification permission
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
@@ -50,6 +47,21 @@ const MessagesList = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredMessages(messages);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = messages.filter(
+        (m) =>
+          (m.name && m.name.toLowerCase().includes(query)) ||
+          (m.email && m.email.toLowerCase().includes(query)) ||
+          (m.message && m.message.toLowerCase().includes(query))
+      );
+      setFilteredMessages(filtered);
+    }
+  }, [searchQuery, messages]);
+
   const loadMessages = async () => {
     setLoading(true);
     setError('');
@@ -57,11 +69,12 @@ const MessagesList = () => {
       const result = await getMessages();
       if (result.success && result.data) {
         setMessages(result.data);
+        setFilteredMessages(result.data);
       } else {
         setError('Failed to load messages');
       }
-    } catch (error) {
-      console.error('Error loading messages:', error);
+    } catch (err) {
+      console.error('Error loading messages:', err);
       setError('Failed to load messages');
     } finally {
       setLoading(false);
@@ -92,7 +105,7 @@ const MessagesList = () => {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
           <div className="flex items-center space-x-3 mb-2">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -113,16 +126,30 @@ const MessagesList = () => {
             View and manage messages from visitors (realtime updates)
           </p>
         </div>
-        <button
-          onClick={() => {
-            setNewMessageCount(0);
-            loadMessages();
-          }}
-          className="btn-secondary flex items-center space-x-2 mt-4 sm:mt-0"
-        >
-          <RefreshCw className="w-5 h-5" />
-          <span>Refresh</span>
-        </button>
+
+        {/* Search + Refresh side by side */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 w-full sm:w-auto gap-2">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search messages..."
+              className="pl-10 pr-4 py-2 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setNewMessageCount(0);
+              loadMessages();
+            }}
+            className="btn-secondary flex items-center space-x-2 py-2 px-4"
+          >
+            <RefreshCw className="w-5 h-5" />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -132,9 +159,9 @@ const MessagesList = () => {
       )}
 
       {/* Messages List */}
-      {messages.length > 0 ? (
+      {filteredMessages.length > 0 ? (
         <div className="space-y-4">
-          {messages.map((message, index) => (
+          {filteredMessages.map((message, index) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 20 }}
@@ -194,9 +221,9 @@ const MessagesList = () => {
       ) : (
         <div className="card text-center py-12">
           <div className="text-6xl mb-4">📧</div>
-          <h3 className="text-2xl font-bold mb-2">No messages yet</h3>
+          <h3 className="text-2xl font-bold mb-2">No messages found</h3>
           <p className="text-gray-600 dark:text-gray-300">
-            Messages from the contact form will appear here
+            Try adjusting your search or refresh
           </p>
         </div>
       )}
@@ -205,4 +232,3 @@ const MessagesList = () => {
 };
 
 export default MessagesList;
-
